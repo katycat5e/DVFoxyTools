@@ -23,6 +23,7 @@ namespace FoxyTools
 
             ResourceUtil.RegisterCommands();
             PlayerInfo.RegisterCommands();
+            PositionTester.RegisterCommands();
 
             return true;
         }
