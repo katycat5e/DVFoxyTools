@@ -103,7 +103,7 @@ namespace FoxyTools
                     Debug.Log($"{targetObject.name}.{renderer.name}.{material.name} uses shader {material.shader.name}");
 
                     if( material.GetTexture("_MainTex") is Texture2D diffuse ) ExportTexture(diffuse, outputDir);
-                    if( material.GetTexture("_BumpMap") is Texture2D normal ) ExportTexture(normal, outputDir, true);
+                    if( material.GetTexture("_BumpMap") is Texture2D normal ) ExportTexture(normal, outputDir);
                     if( material.GetTexture("_MetallicGlossMap") is Texture2D specular ) ExportTexture(specular, outputDir);
                     if( material.GetTexture("_EmissionMap") is Texture2D emission ) ExportTexture(emission, outputDir);
                 }
