@@ -17,6 +17,7 @@ namespace FoxyTools
             ResourceUtil.RegisterCommands();
             PlayerInfo.RegisterCommands();
             PositionTester.RegisterCommands();
+            StationInfoDump.RegisterCommands();
 
             return true;
         }

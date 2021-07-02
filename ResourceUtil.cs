@@ -19,6 +19,9 @@ namespace FoxyTools
             Terminal.Shell.AddCommand("FT.DumpObject", DumpObjStructure, 1, 1, "Print the structure of the object with given name");
             Terminal.Autocomplete.Register("FT.DumpObject");
 
+            Terminal.Shell.AddCommand("FT.DumpCarPrefab", DumpCarPrefab, 1, 1, "Print the structure of the traincar prefab with given name");
+            Terminal.Autocomplete.Register("FT.DumpCarPrefab");
+
             Terminal.Shell.AddCommand("FT.FindResources", FindResourcesOfType, 1, 1, "Find all resources of the given type");
             Terminal.Autocomplete.Register("FT.FindResources");
         }
@@ -96,6 +99,24 @@ namespace FoxyTools
 
             string contents = GameObjectDumper.DumpObject(gameObj);
             Debug.Log(contents);
+        }
+
+        public static void DumpCarPrefab( CommandArg[] args )
+        {
+            if( Terminal.IssuedError ) return;
+
+            string name = args[0].String;
+
+            if( Enum.TryParse(name, out TrainCarType carType) )
+            {
+                GameObject prefab = CarTypes.GetCarPrefab(carType);
+                string contents = GameObjectDumper.DumpObject(prefab);
+                Debug.Log(contents);
+            }
+            else
+            {
+                Debug.LogWarning("Invalid car type " + name);
+            }
         }
 
         public static void FindResourcesOfType( CommandArg[] args )
