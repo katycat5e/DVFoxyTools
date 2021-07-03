@@ -52,6 +52,7 @@
     <Reference Include="UnityModManager, Version=0.22.9.0, Culture=neutral, processorArchitecture=MSIL" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CarPrefabInfo.cs" />
     <Compile Include="FoxyToolsMain.cs" />
     <Compile Include="GameObjectDumper.cs" />
     <Compile Include="PlayerInfo.cs" />

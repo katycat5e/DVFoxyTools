@@ -18,6 +18,7 @@ namespace FoxyTools
             PlayerInfo.RegisterCommands();
             PositionTester.RegisterCommands();
             StationInfoDump.RegisterCommands();
+            CarPrefabInfo.RegisterCommands();
 
             return true;
         }
