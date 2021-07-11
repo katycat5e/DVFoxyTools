@@ -55,6 +55,7 @@
     <Compile Include="CarPrefabInfo.cs" />
     <Compile Include="FoxyToolsMain.cs" />
     <Compile Include="GameObjectDumper.cs" />
+    <Compile Include="ComponentsToJson.cs" />
     <Compile Include="PlayerInfo.cs" />
     <Compile Include="PositionTester.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

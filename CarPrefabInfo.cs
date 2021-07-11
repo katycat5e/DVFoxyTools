@@ -26,6 +26,9 @@ namespace FoxyTools
 
             Terminal.Shell.AddCommand("FT.ExportInteriorColliders", ExportInteriorColliders, 1, 1, "Print the interior colliders of the traincar prefab with given name");
             Terminal.Autocomplete.Register("FT.ExportInteriorColliders");
+
+            Terminal.Shell.AddCommand("FT.ExportLocoCurves", ExportLocoControllerCurves, 1, 1, "Print the physics curves of the loco with given name");
+            Terminal.Autocomplete.Register("FT.ExportLocoCurves");
         }
 
         public static void DumpCarPrefab( CommandArg[] args )
@@ -125,7 +128,7 @@ namespace FoxyTools
                     {
                         Collider[] colliders = subTransform.gameObject.GetComponentsInChildren<Collider>();
 
-                        var colliderCategory = ConvertCollidersToJson(colliders);
+                        var colliderCategory = ComponentsToJson.Colliders(colliders);
                         colliderDict.Add(new JProperty(categoryName, colliderCategory));
                     }
                 }
@@ -178,7 +181,7 @@ namespace FoxyTools
             JArray colliderList = null;
             if( collidersOnThis.Length > 0 )
             {
-                 colliderList = ConvertCollidersToJson(collidersOnThis);
+                 colliderList = ComponentsToJson.Colliders(collidersOnThis);
             }
 
             JArray children = null;
@@ -218,44 +221,54 @@ namespace FoxyTools
             else return null;
         }
 
-        private static JArray ConvertCollidersToJson( IEnumerable<Collider> colliders )
+        public static void ExportLocoControllerCurves( CommandArg[] args )
         {
-            var colliderList = new JArray();
+            if( Terminal.IssuedError ) return;
 
-            foreach( Collider collider in colliders )
+            string name = args[0].String;
+
+            if( Enum.TryParse(name, out TrainCarType carType) )
             {
-                var props = new JObject();
-
-                if( collider is BoxCollider bc )
+                GameObject prefab = CarTypes.GetCarPrefab(carType);
+                if( !prefab )
                 {
-                    props.Add(new JProperty("type", "box"));
-                    props.Add(new JProperty("center", $"{bc.center.x},{bc.center.y},{bc.center.z}"));
-                    props.Add(new JProperty("size", $"{bc.size.x},{bc.size.y},{bc.size.z}"));
-                }
-                else if( collider is CapsuleCollider cc )
-                {
-                    props.Add(new JProperty("type", "capsule"));
-                    props.Add(new JProperty("center", $"{cc.center.x},{cc.center.y},{cc.center.z}"));
-                    props.Add(new JProperty("direction", $"{cc.direction}"));
-                    props.Add(new JProperty("height", $"{cc.height}"));
-                    props.Add(new JProperty("radius", $"{cc.radius}"));
-                }
-                else if( collider is SphereCollider sc )
-                {
-                    props.Add(new JProperty("type", "sphere"));
-                    props.Add(new JProperty("center", $"{sc.center.x},{sc.center.y},{sc.center.z}"));
-                    props.Add(new JProperty("radius", $"{sc.radius}"));
-                }
-                else if( collider is MeshCollider mc )
-                {
-                    props.Add(new JProperty("type", "mesh"));
-                    props.Add(new JProperty("mesh", mc.sharedMesh.name));
+                    Debug.LogError($"CarType {name} has missing prefab");
+                    return;
                 }
 
-                colliderList.Add(props);
+                LocoControllerBase locoController = prefab.GetComponent<LocoControllerBase>();
+                if( !locoController )
+                {
+                    Debug.LogWarning($"CarType {name} prefab does not have a loco controller");
+                    return;
+                }
+
+                JObject brakeCurve = ComponentsToJson.AnimationCurve(locoController.brakePowerCurve);
+                brakeCurve.Add("name", "brakePowerCurve");
+
+                JArray curves = new JArray() { brakeCurve };
+
+                if( locoController is LocoControllerDiesel lcd )
+                {
+                    var tractionCurve = ComponentsToJson.AnimationCurve(lcd.tractionTorqueCurve);
+                    tractionCurve.Add("name", "tractionTorqueCurve");
+                    curves.Add(tractionCurve);
+                }
+                else if( locoController is LocoControllerSteam lcs )
+                {
+                    var tractionCurve = ComponentsToJson.AnimationCurve(lcs.tractionTorqueCurve);
+                    tractionCurve.Add("name", "tractionTorqueCurve");
+                    curves.Add(tractionCurve);
+                }
+                else if( locoController is LocoControllerShunter lcShunt )
+                {
+                    var tractionCurve = ComponentsToJson.AnimationCurve(lcShunt.tractionTorqueCurve);
+                    tractionCurve.Add("name", "tractionTorqueCurve");
+                    curves.Add(tractionCurve);
+                }
+
+                GameObjectDumper.SendJsonToFile(name, "loco_curves", curves);
             }
-
-            return colliderList;
         }
     }
 }
