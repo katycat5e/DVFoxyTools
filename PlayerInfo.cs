@@ -45,8 +45,8 @@ namespace FoxyTools
             }
 
             Debug.Log($"Dumping structure of {currentCar.carType.DisplayName()}");
-            string structure = GameObjectDumper.DumpObject(currentCar.gameObject);
-            Debug.Log(structure);
+            var structure = GameObjectDumper.DumpObject(currentCar.gameObject);
+            GameObjectDumper.SendJsonToFile(currentCar.name, "spawned", structure);
         }
 
         public static void GetTransform( CommandArg[] args )

@@ -95,8 +95,8 @@ namespace FoxyTools
                 return;
             }
 
-            string contents = GameObjectDumper.DumpObject(gameObj);
-            Debug.Log(contents);
+            var contents = GameObjectDumper.DumpObject(gameObj);
+            GameObjectDumper.SendJsonToFile(name, "object", contents);
         }
 
         public static void FindResourcesOfType( CommandArg[] args )
