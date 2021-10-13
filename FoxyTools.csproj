@@ -34,6 +34,7 @@
   <ItemGroup>
     <Reference Include="0Harmony12, Version=1.2.0.1, Culture=neutral, processorArchitecture=MSIL" />
     <Reference Include="Assembly-CSharp, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL" />
+    <Reference Include="DV.Interaction, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null" />
     <Reference Include="DV.Utils, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL" />
     <Reference Include="Newtonsoft.Json, Version=8.0.0.0, Culture=neutral, processorArchitecture=MSIL" />
     <Reference Include="System" />
@@ -45,6 +46,7 @@
     <Reference Include="System.Net.Http" />
     <Reference Include="System.Xml" />
     <Reference Include="UnityEngine, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL" />
+    <Reference Include="UnityEngine.AudioModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null" />
     <Reference Include="UnityEngine.CoreModule, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL" />
     <Reference Include="UnityEngine.ImageConversionModule, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL" />
     <Reference Include="UnityEngine.IMGUIModule, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL" />
@@ -53,7 +55,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CarPrefabInfo.cs" />
+    <Compile Include="ComponentPoolInfo.cs" />
     <Compile Include="FoxyToolsMain.cs" />
+    <Compile Include="FTCommandAttribute.cs" />
     <Compile Include="GameObjectDumper.cs" />
     <Compile Include="ComponentsToJson.cs" />
     <Compile Include="PlayerInfo.cs" />

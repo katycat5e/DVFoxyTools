@@ -12,31 +12,6 @@ namespace FoxyTools
 {
     static class GameObjectDumper
     {
-        //public static string DumpObject( GameObject obj )
-        //{
-        //    if( obj == null ) return "";
-
-        //    var sb = new StringBuilder();
-        //    DumpObjRecursive(obj, sb, "");
-        //    return sb.ToString();
-        //}
-
-        //private static void DumpObjRecursive( GameObject obj, StringBuilder sb, string indent )
-        //{
-        //    sb.AppendFormat("\n{0}[Object: {1}]", indent, obj.name);
-
-        //    string subIndent = indent + '\t';
-        //    foreach( Transform t in obj.transform )
-        //    {
-        //        DumpObjRecursive(t.gameObject, sb, subIndent);
-        //    }
-
-        //    foreach( Component c in obj.GetComponents<Component>() )
-        //    {
-        //        if( c ) sb.AppendFormat("\n{0}[Component: {1}]", subIndent, c.GetType().Name);
-        //    }
-        //}
-
         public static JToken DumpObject( GameObject obj )
         {
             if( obj == null ) return "";
@@ -71,7 +46,9 @@ namespace FoxyTools
             {
                 var rootObj = new JObject()
                 {
-                    new JProperty("name", obj.name)
+                    { "name", obj.name },
+                    { "tag", obj.tag },
+                    { "layer", obj.layer }
                 };
 
                 if( componentList.Count > 0 )
@@ -92,12 +69,15 @@ namespace FoxyTools
             }
         }
 
-        public static void SendJsonToFile( string objName, string objType, JToken json )
+        public static void SendJsonToFile( string objName, string subType, JToken json )
         {
-            string outPath = Path.Combine(FoxyToolsMain.ModEntry.Path, $"{objName}_{objType}.json");
+            string outDir = Path.Combine(FoxyToolsMain.ModEntry.Path, "Export", objName);
+            string outPath = Path.Combine(outDir, $"{objName}_{subType}.json");
 
             try
             {
+                Directory.CreateDirectory(outDir);
+
                 using( var outFile = File.CreateText(outPath) )
                 {
                     using( var jtw = new JsonTextWriter(outFile) )

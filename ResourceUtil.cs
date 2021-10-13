@@ -9,21 +9,7 @@ namespace FoxyTools
 {
     static class ResourceUtil
     {
-        public static void RegisterCommands()
-        {
-            Terminal.Shell.AddCommand("FT.SpawnPrefab", SpawnPrefab, 1, 1, "Instantiate the resource with given name");
-            Terminal.Autocomplete.Register("FT.SpawnPrefab");
-
-            Terminal.Shell.AddCommand("FT.CopyObject", CopyObject, 1, 1, "Copy the game object with the given name");
-            Terminal.Autocomplete.Register("FT.CopyObject");
-
-            Terminal.Shell.AddCommand("FT.DumpObject", DumpObjStructure, 1, 1, "Print the structure of the object with given name");
-            Terminal.Autocomplete.Register("FT.DumpObject");
-
-            Terminal.Shell.AddCommand("FT.FindResources", FindResourcesOfType, 1, 1, "Find all resources of the given type");
-            Terminal.Autocomplete.Register("FT.FindResources");
-        }
-
+        [FTCommand(1, 1, "Instantiate the resource with given name")]
         public static void SpawnPrefab( CommandArg[] args )
         {
             if( Terminal.IssuedError ) return;
@@ -53,6 +39,7 @@ namespace FoxyTools
             }
         }
 
+        [FTCommand(1, 1, "Copy the game object with the given name")]
         public static void CopyObject( CommandArg[] args )
         {
             if( Terminal.IssuedError ) return;
@@ -82,6 +69,7 @@ namespace FoxyTools
             }
         }
 
+        [FTCommand("DumpObject", 1, 1, "Print the structure of the object with given name")]
         public static void DumpObjStructure( CommandArg[] args )
         {
             if( Terminal.IssuedError ) return;
@@ -99,6 +87,7 @@ namespace FoxyTools
             GameObjectDumper.SendJsonToFile(name, "object", contents);
         }
 
+        [FTCommand("FindResources", 1, 1, "Find all resources of the given type")]
         public static void FindResourcesOfType( CommandArg[] args )
         {
             if( Terminal.IssuedError ) return;
@@ -120,6 +109,18 @@ namespace FoxyTools
             var foundObjs = Resources.FindObjectsOfTypeAll(desiredType);
             string outString = string.Join("\n", foundObjs.Select(o => o.name));
             Debug.Log(outString);
+        }
+
+        [FTCommand(0, 0, "List all unity LayerMask layers")]
+        public static void ListLayers( CommandArg[] args )
+        {
+            if( Terminal.IssuedError ) return;
+
+            for( int i = 0; i < 32; i++ )
+            {
+                string layerName = LayerMask.LayerToName(i);
+                Debug.Log($"Layer {i}: {layerName}");
+            }
         }
     }
 }

@@ -9,18 +9,7 @@ namespace FoxyTools
 {
     static class PlayerInfo
     {
-        public static void RegisterCommands()
-        {
-            Terminal.Shell.AddCommand("FT.GetCarData", GetCarData, 0, 0, "Get information about the car the player is in");
-            Terminal.Autocomplete.Register("FT.GetCarData");
-
-            Terminal.Shell.AddCommand("FT.DumpTrainCar", DumpTrainCar, 0, 0, "Get the full structure of the train car the player is on");
-            Terminal.Autocomplete.Register("FT.DumpTrainCar");
-
-            Terminal.Shell.AddCommand("FT.GetTransform", GetTransform, 0, 0, "Get the player transform");
-            Terminal.Autocomplete.Register("FT.GetTransform");
-        }
-
+        [FTCommand(Help = "Get information about the car the player is in")]
         public static void GetCarData( CommandArg[] args )
         {
             TrainCar currentCar = PlayerManager.Car;
@@ -35,6 +24,7 @@ namespace FoxyTools
             Debug.Log($"Current car: {currentCar.carType.DisplayName()} {currentCar.ID} on track {currentTrack.ID.FullDisplayID}");
         }
 
+        [FTCommand(Help = "Get the full structure of the train car the player is on")]
         public static void DumpTrainCar( CommandArg[] args )
         {
             TrainCar currentCar = PlayerManager.Car;
@@ -49,6 +39,7 @@ namespace FoxyTools
             GameObjectDumper.SendJsonToFile(currentCar.name, "spawned", structure);
         }
 
+        [FTCommand(Help = "Get the player transform")]
         public static void GetTransform( CommandArg[] args )
         {
             var tform = PlayerManager.PlayerTransform;

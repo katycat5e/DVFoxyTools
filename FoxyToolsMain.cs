@@ -14,11 +14,7 @@ namespace FoxyTools
         {
             ModEntry = modEntry;
 
-            ResourceUtil.RegisterCommands();
-            PlayerInfo.RegisterCommands();
-            PositionTester.RegisterCommands();
-            StationInfoDump.RegisterCommands();
-            CarPrefabInfo.RegisterCommands();
+            FTCommandAttribute.RegisterAll();
 
             return true;
         }

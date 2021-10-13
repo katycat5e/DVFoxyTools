@@ -10,12 +10,7 @@ namespace FoxyTools
 {
     static class StationInfoDump
     {
-        public static void RegisterCommands()
-        {
-            Terminal.Shell.AddCommand("FT.GetStationInfo", GetStationInfo, 0, 0, "Dump info about station configs");
-            Terminal.Autocomplete.Register("FT.GetStationInfo");
-        }
-
+        [FTCommand(Help = "Dump info about station configs")]
         public static void GetStationInfo( CommandArg[] args )
         {
             string outPath = Path.Combine(FoxyToolsMain.ModEntry.Path, "station.txt");

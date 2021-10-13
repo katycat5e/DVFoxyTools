@@ -8,29 +8,13 @@ using CommandTerminal;
 using UnityEngine;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json;
+using DV.CabControls.Spec;
 
 namespace FoxyTools
 {
     class CarPrefabInfo
     {
-        public static void RegisterCommands()
-        {
-            Terminal.Shell.AddCommand("FT.DumpCarPrefab", DumpCarPrefab, 1, 1, "Print the structure of the traincar prefab with given name");
-            Terminal.Autocomplete.Register("FT.DumpCarPrefab");
-            
-            Terminal.Shell.AddCommand("FT.DumpCarInterior", DumpCarInterior, 1, 1, "Print the interior structure of the traincar prefab with given name");
-            Terminal.Autocomplete.Register("FT.DumpCarInterior");
-
-            Terminal.Shell.AddCommand("FT.ExportColliders", ExportCarColliders, 1, 1, "Print the colliders of the traincar prefab with given name");
-            Terminal.Autocomplete.Register("FT.ExportColliders");
-
-            Terminal.Shell.AddCommand("FT.ExportInteriorColliders", ExportInteriorColliders, 1, 1, "Print the interior colliders of the traincar prefab with given name");
-            Terminal.Autocomplete.Register("FT.ExportInteriorColliders");
-
-            Terminal.Shell.AddCommand("FT.ExportLocoCurves", ExportLocoControllerCurves, 1, 1, "Print the physics curves of the loco with given name");
-            Terminal.Autocomplete.Register("FT.ExportLocoCurves");
-        }
-
+        [FTCommand(1, 1, "Print the structure of the traincar prefab with given name")]
         public static void DumpCarPrefab( CommandArg[] args )
         {
             if( Terminal.IssuedError ) return;
@@ -55,6 +39,7 @@ namespace FoxyTools
             }
         }
 
+        [FTCommand(1, 1, "Print the interior structure of the traincar prefab with given name")]
         public static void DumpCarInterior( CommandArg[] args )
         {
             if( Terminal.IssuedError ) return;
@@ -97,6 +82,7 @@ namespace FoxyTools
             "[collision]", "[walkable]", "[items]", "[camera dampening]", "[bogies]"
         };
 
+        [FTCommand(1, 1, "Print the colliders of the traincar prefab with given name")]
         public static void ExportCarColliders( CommandArg[] args )
         {
             if( Terminal.IssuedError ) return;
@@ -141,6 +127,7 @@ namespace FoxyTools
             }
         }
 
+        [FTCommand(1, 1, "Print the interior colliders of the traincar prefab with given name")]
         public static void ExportInteriorColliders( CommandArg[] args )
         {
             if( Terminal.IssuedError ) return;
@@ -221,6 +208,7 @@ namespace FoxyTools
             else return null;
         }
 
+        [FTCommand("ExportLocoCurves", 1, 1, "Print the physics curves of the loco with given name")]
         public static void ExportLocoControllerCurves( CommandArg[] args )
         {
             if( Terminal.IssuedError ) return;
@@ -243,31 +231,125 @@ namespace FoxyTools
                     return;
                 }
 
-                JObject brakeCurve = ComponentsToJson.AnimationCurve(locoController.brakePowerCurve);
-                brakeCurve.Add("name", "brakePowerCurve");
+                var props = new JObject();
 
-                JArray curves = new JArray() { brakeCurve };
+                // brake & traction
+                JObject brakeCurve = ComponentsToJson.AnimationCurve(locoController.brakePowerCurve);
+                props.Add("brakePowerCurve", brakeCurve);
 
                 if( locoController is LocoControllerDiesel lcd )
                 {
                     var tractionCurve = ComponentsToJson.AnimationCurve(lcd.tractionTorqueCurve);
-                    tractionCurve.Add("name", "tractionTorqueCurve");
-                    curves.Add(tractionCurve);
+                    props.Add("tractionTorqueCurve", tractionCurve);
                 }
                 else if( locoController is LocoControllerSteam lcs )
                 {
                     var tractionCurve = ComponentsToJson.AnimationCurve(lcs.tractionTorqueCurve);
-                    tractionCurve.Add("name", "tractionTorqueCurve");
-                    curves.Add(tractionCurve);
+                    props.Add("tractionTorqueCurve", tractionCurve);
                 }
                 else if( locoController is LocoControllerShunter lcShunt )
                 {
                     var tractionCurve = ComponentsToJson.AnimationCurve(lcShunt.tractionTorqueCurve);
-                    tractionCurve.Add("name", "tractionTorqueCurve");
-                    curves.Add(tractionCurve);
+                    props.Add("tractionTorqueCurve", tractionCurve);
                 }
 
-                GameObjectDumper.SendJsonToFile(name, "loco_curves", curves);
+                // driving force
+                props.Add("drivingForce", ComponentsToJson.DrivingForce(locoController.drivingForce));
+
+                GameObjectDumper.SendJsonToFile(name, "loco_curves", props);
+            }
+        }
+
+        [FTCommand(1, 1, "Print the damage controller properties of the loco with given name")]
+        public static void ExportDamageProperties( CommandArg[] args )
+        {
+            if( Terminal.IssuedError ) return;
+
+            string name = args[0].String;
+
+            if( Enum.TryParse(name, out TrainCarType carType) )
+            {
+                GameObject prefab = CarTypes.GetCarPrefab(carType);
+                if( !prefab )
+                {
+                    Debug.LogError($"CarType {name} has missing prefab");
+                    return;
+                }
+
+                var damage = prefab.GetComponent<DamageController>();
+                if( !damage )
+                {
+                    Debug.LogWarning($"CarType {name} prefab does not have a damage controller");
+                    return;
+                }
+
+                var ctrlProps = new JObject
+                {
+                    { "wheelsHP", damage.wheels.fullHitPoints },
+                    { "speedToBrakeDamageCurve", ComponentsToJson.AnimationCurve(damage.speedToBrakeDamageCurve) },
+                };
+
+                if( damage is DamageControllerDiesel dcd )
+                {
+                    ctrlProps.Add("engineHP", dcd.engine.fullHitPoints);
+                }
+                else if( damage is DamageControllerShunter dcs )
+                {
+                    ctrlProps.Add("engineHP", dcs.engine.fullHitPoints);
+                }
+
+                if( TrainCarAndCargoDamageProperties.carDamageProperties.TryGetValue(carType, out CarDamageProperties dmgProps) )
+                {
+                    ctrlProps.Add("bodyDamage", ComponentsToJson.CarDamageProperties(dmgProps));
+                }
+
+                GameObjectDumper.SendJsonToFile(name, "damage", ctrlProps);
+            }
+        }
+
+        [FTCommand(1, 1, "Print the cab control specs of the loco with given name")]
+        public static void ExportCabControls( CommandArg[] args )
+        {
+            if( Terminal.IssuedError ) return;
+
+            string name = args[0].String;
+
+            if( Enum.TryParse(name, out TrainCarType carType) )
+            {
+                GameObject prefab = CarTypes.GetCarPrefab(carType);
+                if( !prefab )
+                {
+                    Debug.LogError($"CarType {name} has missing prefab");
+                    return;
+                }
+
+                TrainCar car = prefab.GetComponent<TrainCar>();
+                if( !car )
+                {
+                    Debug.LogError($"Couldn't find TrainCar on carType {name}");
+                    return;
+                }
+
+                if( !car.interiorPrefab )
+                {
+                    Debug.LogWarning($"TrainCar on carType {name} doesn't have an interiorPrefab assigned");
+                    return;
+                }
+
+                var specList = new JArray();
+                var controlSpecs = car.interiorPrefab.GetComponentsInChildren<ControlSpec>();
+                foreach( ControlSpec spec in controlSpecs )
+                {
+                    specList.Add(ComponentsToJson.GenericObject(spec));
+                }
+
+                var indicators = car.interiorPrefab.GetComponentsInChildren<Indicator>();
+                foreach( Indicator ind in indicators )
+                {
+                    specList.Add(ComponentsToJson.GenericObject(ind));
+                }
+
+                GameObjectDumper.SendJsonToFile(name, "control_spec", specList);
             }
         }
     }

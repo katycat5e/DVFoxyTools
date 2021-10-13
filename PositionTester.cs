@@ -12,15 +12,8 @@ namespace FoxyTools
         static GameObject PosIndicator = null;
         public static bool Active = false;
 
-        public static void RegisterCommands()
-        {
-            Terminal.Shell.AddCommand("FT.Pointer", SetActive, 0, 0, "Activate/deactivate the pointer tool");
-            Terminal.Autocomplete.Register("FT.Pointer");
 
-            Terminal.Shell.AddCommand("FT.DumpObjTexture", DumpTextures, 0, 1, "Export the texture set of an object");
-            Terminal.Autocomplete.Register("FT.DumpObjTexture");
-        }
-
+        [FTCommand("Pointer", 0, 0, "Activate/deactivate the pointer tool")]
         public static void SetActive( CommandArg[] args )
         {
             if( Terminal.IssuedError ) return;
@@ -61,6 +54,7 @@ namespace FoxyTools
             if( PosIndicator != null ) PosIndicator.SetActive(false);
         }
 
+        [FTCommand("DumpObjTexture", 0, 1, "Export the texture set of an object")]
         public static void DumpTextures( CommandArg[] args )
         {
             GameObject targetObject;
