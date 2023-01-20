@@ -13,6 +13,45 @@ namespace FoxyTools
 {
     public static class ComponentsToJson
     {
+        public static bool IgnoreCurves = false;
+
+        public static void Reset()
+        {
+            IgnoreCurves = false;
+        }
+
+        private static JToken GetSpecialConversion(object obj)
+        {
+            var objType = obj.GetType();
+
+            if (objType == typeof(Collider))
+            {
+                return Collider((Collider)obj);
+            }
+            else if (objType == typeof(AnimationCurve))
+            {
+                return AnimationCurve((AnimationCurve)obj);
+            }
+            else if (objType == typeof(CarDamageProperties))
+            {
+                return CarDamageProperties((CarDamageProperties)obj);
+            }
+            else if (objType == typeof(DrivingForce))
+            {
+                return DrivingForce((DrivingForce)obj);
+            }
+            else if (objType == typeof(AudioPoolReferences))
+            {
+                return AudioPoolReferences((AudioPoolReferences)obj);
+            }
+            else if (objType == typeof(AudioClip))
+            {
+                return AudioClip((AudioClip)obj);
+            }
+
+            return null;
+        }
+
         public static JArray Colliders( IEnumerable<Collider> colliders )
         {
             var colliderList = new JArray();
@@ -55,6 +94,8 @@ namespace FoxyTools
                 props.Add(new JProperty("mesh", mc.sharedMesh.name));
             }
 
+            props.Add("isTrigger", collider.isTrigger);
+
             return props;
         }
 
@@ -66,13 +107,32 @@ namespace FoxyTools
                 new JProperty("postWrapMode", curve.postWrapMode)
             };
 
-            var keyArray = new JArray();
-            foreach( Keyframe key in curve.keys )
+            //var keyArray = new JArray();
+            //foreach( Keyframe key in curve.keys )
+            //{
+            //    keyArray.Add(Keyframe(key));
+            //}
+
+            //props.Add("keys", keyArray);
+
+            if (IgnoreCurves || (curve.keys == null) || (curve.keys.Length == 0))
             {
-                keyArray.Add(Keyframe(key));
+                props.Add("points", !IgnoreCurves ? "[]" : "[...]");
+                return props;
             }
 
-            props.Add("keys", keyArray);
+            var keysSorted = curve.keys.OrderBy(k => k.time);
+            var firstKey = curve.keys.First();
+            var lastKey = curve.keys.Last();
+
+            float step = (lastKey.time - firstKey.time) / 1000;
+            var pts = Enumerable.Range(0, 1001).Select(t => curve.Evaluate(firstKey.time + (t * step)));
+            string ptString = string.Join(",", pts);
+
+            props.Add("minT", firstKey.time);
+            props.Add("maxT", lastKey.time);
+            props.Add("points", $"[{ptString}]");
+
             return props;
         }
 
@@ -119,11 +179,18 @@ namespace FoxyTools
         {
             var prefabInfo = GameObjectDumper.DumpObject(poolData.audioPrefab);
 
+            JToken audioComp = JValue.CreateNull();
+            if (poolData.audioPrefab)
+            {
+                audioComp = GenericObject(poolData.audioPrefab.GetComponent<TrainAudio>(), 4);
+            }
+
             return new JObject()
             {
                 { "trainCarType", poolData.trainCarType.DisplayName() },
                 { "poolSize", poolData.poolSize },
-                { "audioPrefab", prefabInfo }
+                { "audioPrefab", prefabInfo },
+                { "trainAudio", audioComp }
             };
         }
 
@@ -146,13 +213,34 @@ namespace FoxyTools
             return result;
         }
 
+        public static JObject AudioClip(AudioClip audioClip)
+        {
+            return new JObject()
+            {
+                { "_componentType", "AudioClip" },
+                { "_name", audioClip.name },
+                { "length", audioClip.length },
+                { "channels", audioClip.channels },
+                { "frequency", audioClip.frequency },
+                { "samples", audioClip.samples },
+            };
+        }
+
         public static JToken GenericObject( object obj, int depthLimit = 20 )
         {
             if( obj == null ) return JValue.CreateNull();
             if( depthLimit == 0 ) return "Depth limit reached";
 
             Type objType = obj.GetType();
-            if( typeof(IEnumerable).IsAssignableFrom(objType) )
+            if (objType.IsPrimitive || obj is string)
+            {
+                return new JValue(obj);
+            }
+            else if (objType.IsEnum)
+            {
+                return $"{Enum.GetName(objType, obj)} ({objType.Name})";
+            }
+            else if ( typeof(IEnumerable).IsAssignableFrom(objType) )
             {
                 if( obj is IEnumerable val )
                 {
@@ -169,18 +257,21 @@ namespace FoxyTools
                     return JValue.CreateNull();
                 }
             }
-            else if( (obj is MonoBehaviour) || (obj is ScriptableObject) )
+            else if (GetSpecialConversion(obj) is JToken specialJson)
             {
-                var script = obj as UnityEngine.Object;
-
+                return specialJson;
+            }
+            else if (obj is UnityEngine.Object script)
+            {
                 if( script )
                 {
                     var props = new JObject()
                     {
-                        { "name", script.name }
+                        { "_componentType", objType.Name },
+                        { "_name", script.name }
                     };
 
-                    var fields = obj.GetType().GetFields();
+                    var fields = obj.GetType().GetFields(BindingFlags.Public | BindingFlags.Instance);
                     foreach( FieldInfo field in fields )
                     {
                         var token = GenericObject(field.GetValue(obj), depthLimit - 1);
@@ -193,15 +284,11 @@ namespace FoxyTools
                     return $"Null {objType.Name}";
                 }
             }
-            else if( obj is UnityEngine.Object unityVal )
-            {
-                if( unityVal ) return unityVal.name;
-                return "";
-            }
-            else if( objType.IsPrimitive )
-            {
-                return new JValue(obj);
-            }
+            //else if( obj is UnityEngine.Object unityVal )
+            //{
+            //    if( unityVal ) return unityVal.name;
+            //    return "";
+            //}
             else
             {
                 var props = new JObject();

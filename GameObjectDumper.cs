@@ -69,15 +69,33 @@ namespace FoxyTools
             }
         }
 
-        public static void SendJsonToFile( string objName, string subType, JToken json )
+        public static void SendJsonToFile(string objName, string subType, JToken json)
         {
             string outDir = Path.Combine(FoxyToolsMain.ModEntry.Path, "Export", objName);
-            string outPath = Path.Combine(outDir, $"{objName}_{subType}.json");
 
             try
             {
                 Directory.CreateDirectory(outDir);
+                string outPath = Path.Combine(outDir, $"{objName}_{subType}.json");
+                ExportJson(outPath, json);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError("Couldn't open output file:\n" + ex.Message);
+                return;
+            }
+        }
 
+        public static void SendJsonToFile(string fileName, JToken token)
+        {
+            string outPath = Path.Combine(FoxyToolsMain.ModEntry.Path, "Export", fileName);
+            ExportJson(outPath, token);
+        }
+
+        private static void ExportJson(string outPath, JToken json)
+        {
+            try
+            {
                 using( var outFile = File.CreateText(outPath) )
                 {
                     using( var jtw = new JsonTextWriter(outFile) )

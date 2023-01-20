@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using CommandTerminal;
+using Newtonsoft.Json.Linq;
 using UnityEngine;
 
 namespace FoxyTools
@@ -107,8 +108,8 @@ namespace FoxyTools
             }
 
             var foundObjs = Resources.FindObjectsOfTypeAll(desiredType);
-            string outString = string.Join("\n", foundObjs.Select(o => o.name));
-            Debug.Log(outString);
+            var json = ComponentsToJson.GenericObject(foundObjs);
+            GameObjectDumper.SendJsonToFile("Resources", desiredType.Name, json);
         }
 
         [FTCommand(0, 0, "List all unity LayerMask layers")]
@@ -116,11 +117,29 @@ namespace FoxyTools
         {
             if( Terminal.IssuedError ) return;
 
-            for( int i = 0; i < 32; i++ )
-            {
-                string layerName = LayerMask.LayerToName(i);
-                Debug.Log($"Layer {i}: {layerName}");
-            }
+            string[] layerNames = Enumerable.Range(0, 32).Select(n => $"{n} - {LayerMask.LayerToName(n)}").ToArray();
+            var json = ComponentsToJson.GenericObject(layerNames);
+            GameObjectDumper.SendJsonToFile("Resources", "layers", json);
+        }
+
+        [FTCommand(0, 0, "Export audio properties")]
+        public static void ExportAudioProps(CommandArg[] args)
+        {
+            var json = new JObject();
+
+            ComponentsToJson.IgnoreCurves = true;
+
+            var layered = Resources.FindObjectsOfTypeAll<LayeredAudio>().Where(la => !la.name.Contains("(Clone)"));
+            var layerJson = ComponentsToJson.GenericObject(layered, 6);
+            json.Add("layered", layerJson);
+
+            var clips = Resources.FindObjectsOfTypeAll<AudioClip>();
+            var clipJson = ComponentsToJson.GenericObject(clips, 6);
+            json.Add("clips", clipJson);
+
+            ComponentsToJson.Reset();
+
+            GameObjectDumper.SendJsonToFile("Resources", "audio", json);
         }
     }
 }

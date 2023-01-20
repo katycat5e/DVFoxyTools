@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using CommandTerminal;
 using DV.Logic.Job;
+using Newtonsoft.Json.Linq;
 using UnityEngine;
 
 namespace FoxyTools
@@ -11,45 +12,61 @@ namespace FoxyTools
     static class StationInfoDump
     {
         [FTCommand(Help = "Dump info about station configs")]
-        public static void GetStationInfo( CommandArg[] args )
+        public static void GetStationInfo(CommandArg[] args)
         {
-            string outPath = Path.Combine(FoxyToolsMain.ModEntry.Path, "station.txt");
+            if (Terminal.IssuedError) return;
 
-            try
+            var stations = GameObject.FindObjectsOfType<StationController>();
+            var stationList = new JArray();
+
+            foreach (var station in stations)
             {
-                using( var fs = new FileStream(outPath, FileMode.Create) )
+                var stationJson = new JObject()
                 {
-                    using( var sw = new StreamWriter(fs) )
-                    {
-                        var stations = GameObject.FindObjectsOfType<StationController>();
-                        foreach( StationController station in stations )
-                        {
-                            StationInfo info = station.stationInfo;
-                            sw.WriteLine($"[{info.Name} ({info.YardID})]");
+                    { "name", station.stationInfo.Name },
+                    { "id", station.stationInfo.YardID }
+                };
 
-                            // job rules
-                            var ruleSet = station.proceduralJobsRuleset;
-                            sw.WriteLine("\tInputs:");
-                            foreach( CargoType input in ruleSet.inputCargoGroups.SelectMany(group => group.cargoTypes) )
-                            {
-                                sw.WriteLine($"\t\t{input.GetCargoName()}");
-                            }
+                // job rules
+                var ruleSet = station.proceduralJobsRuleset;
+                var inputGroups = new JArray(ruleSet.inputCargoGroups.Select(CargoGroupJson));
+                var outputGroups = new JArray(ruleSet.outputCargoGroups.Select(CargoGroupJson));
 
-                            sw.WriteLine("\n\tOutputs:");
-                            foreach( CargoType output in ruleSet.outputCargoGroups.SelectMany(group => group.cargoTypes) )
-                            {
-                                sw.WriteLine($"\t\t{output.GetCargoName()}");
-                            }
+                stationJson.Add("inputs", inputGroups);
+                stationJson.Add("outputs", outputGroups);
 
-                            sw.WriteLine();
-                        }
-                    }
-                }
+                var spawners = station.GetComponentsInChildren<StationLocoSpawner>();
+                stationJson.Add("spawners", new JArray(spawners.Select(LocoSpawnerJson)));
+
+                stationList.Add(stationJson);
             }
-            catch( Exception ex )
+
+            GameObjectDumper.SendJsonToFile("Resources", "stations", stationList);
+        }
+
+        private static JObject CargoGroupJson(CargoGroup group)
+        {
+            return new JObject()
             {
-                Debug.LogError("Couldn't open output file:\n" + ex.Message);
-            }
+                { "cargoTypes", new JArray(group.cargoTypes.Select(CargoTypes.GetCargoName)) },
+                { "stations", new JArray(group.stations.Select(s => s.stationInfo.YardID)) }
+            };
+        }
+
+        private static JObject LocoSpawnerJson(StationLocoSpawner spawner)
+        {
+            return new JObject()
+            {
+                { "locoSpawnTrackName", spawner.locoSpawnTrackName },
+                { "spawnRotationFlipped", spawner.spawnRotationFlipped },
+                { "locoTypeGroupsToSpawn", new JArray(spawner.locoTypeGroupsToSpawn.Select(ListTrainCarTypeWrapperJson)) }
+            };
+        }
+
+        private static JArray ListTrainCarTypeWrapperJson(ListTrainCarTypeWrapper list)
+        {
+            var names = list.trainCarTypes.Select(t => t.DisplayName());
+            return new JArray(names);
         }
     }
 }
