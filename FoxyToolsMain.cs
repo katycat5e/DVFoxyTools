@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using CommandTerminal;
 using UnityModManagerNet;
+using HarmonyLib;
 
 namespace FoxyTools
 {
@@ -15,6 +17,9 @@ namespace FoxyTools
             ModEntry = modEntry;
 
             FTCommandAttribute.RegisterAll();
+
+            var harmony = new Harmony("cc.foxden.foxytools");
+            harmony.PatchAll(Assembly.GetExecutingAssembly());
 
             return true;
         }

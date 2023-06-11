@@ -342,5 +342,25 @@ namespace FoxyTools
 
             GameObjectDumper.SendJsonToFile(name, "control_spec", specList);
         }
+
+        [FTCommand(0, 1, "Print the particle systems of the selected car")]
+        public static void ExportCarParticles(CommandArg[] args)
+        {
+            if (Terminal.IssuedError) return;
+
+            if (!TryGetSelectedCar(args, out TrainCarType carType, out string name)) return;
+
+            GameObject prefab = CarTypes.GetCarPrefab(carType);
+            if (!prefab)
+            {
+                Debug.LogError($"CarType {name} has missing prefab");
+                return;
+            }
+
+            var systems = prefab.GetComponentsInChildren<ParticleSystem>();
+            var json = ComponentsToJson.GenericObject(systems);
+
+            GameObjectDumper.SendJsonToFile(name, "particles", json);
+        }
     }
 }

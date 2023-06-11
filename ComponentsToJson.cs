@@ -24,29 +24,37 @@ namespace FoxyTools
         {
             var objType = obj.GetType();
 
-            if (objType == typeof(Collider))
+            if (obj is Collider collider)
             {
-                return Collider((Collider)obj);
+                return Collider(collider);
             }
-            else if (objType == typeof(AnimationCurve))
+            else if (obj is AnimationCurve curve)
             {
-                return AnimationCurve((AnimationCurve)obj);
+                return AnimationCurve(curve);
             }
-            else if (objType == typeof(CarDamageProperties))
+            else if (obj is CarDamageProperties damage)
             {
-                return CarDamageProperties((CarDamageProperties)obj);
+                return CarDamageProperties(damage);
             }
-            else if (objType == typeof(DrivingForce))
+            else if (obj is DrivingForce force)
             {
-                return DrivingForce((DrivingForce)obj);
+                return DrivingForce(force);
             }
-            else if (objType == typeof(AudioPoolReferences))
+            else if (obj is AudioPoolReferences pool)
             {
-                return AudioPoolReferences((AudioPoolReferences)obj);
+                return AudioPoolReferences(pool);
             }
-            else if (objType == typeof(AudioClip))
+            else if (obj is AudioClip clip)
             {
-                return AudioClip((AudioClip)obj);
+                return AudioClip(clip);
+            }
+            else if (obj is AudioSource source)
+            {
+                return AudioSource(source);
+            }
+            else if (obj is ParticleSystem particles)
+            {
+                return ParticleSystem(particles);
             }
 
             return null;
@@ -182,7 +190,7 @@ namespace FoxyTools
             JToken audioComp = JValue.CreateNull();
             if (poolData.audioPrefab)
             {
-                audioComp = GenericObject(poolData.audioPrefab.GetComponent<TrainAudio>(), 4);
+                audioComp = GenericObject(poolData.audioPrefab.GetComponent<TrainAudio>(), 6);
             }
 
             return new JObject()
@@ -213,8 +221,10 @@ namespace FoxyTools
             return result;
         }
 
-        public static JObject AudioClip(AudioClip audioClip)
+        public static JToken AudioClip(AudioClip audioClip)
         {
+            if (!audioClip) return JValue.CreateNull();
+
             return new JObject()
             {
                 { "_componentType", "AudioClip" },
@@ -223,6 +233,64 @@ namespace FoxyTools
                 { "channels", audioClip.channels },
                 { "frequency", audioClip.frequency },
                 { "samples", audioClip.samples },
+            };
+        }
+
+        public static JObject AudioSource(AudioSource source)
+        {
+            return new JObject()
+            {
+                { "_componentType", "AudioSource" },
+                { "_name", source.name },
+                { "clip", AudioClip(source.clip) },
+                { "playOnAwake", source.playOnAwake },
+                { "rolloffMode", source.rolloffMode.ToString() },
+                { "minDistance", source.minDistance },
+                { "maxDistance", source.maxDistance },
+                { "spread", source.spread },
+                { "pitch", source.pitch },
+                { "volume", source.volume },
+                { "spatialBlend", source.spatialBlend },
+                { "dopplerLevel", source.dopplerLevel },
+                { "ignoreListenerPause", source.ignoreListenerPause },
+                { "outputAudioMixerGroup", GenericObject(source.outputAudioMixerGroup, 1) }
+            };
+        }
+
+        public static JObject ParticleSystem(ParticleSystem particles)
+        {
+            return new JObject()
+            {
+                { "_name", particles.gameObject.name },
+                { "_componentType", "ParticleSystem" },
+                { "main", MainModule(particles.main) },
+                { "emission", EmissionModule(particles.emission) },
+            };
+        }
+
+        private static JObject MainModule(ParticleSystem.MainModule main)
+        {
+            return new JObject()
+            {
+                { "maxParticles", main.maxParticles },
+                { "startLifetime", main.startLifetime.constant },
+                { "startLifetimeMult", main.startLifetimeMultiplier },
+
+                { "startSize", main.startSize.constant },
+                { "startSizeMult", main.startSizeMultiplier },
+                { "startSpeed", main.startSpeed.constant },
+                { "startSpeedMult", main.startSpeedMultiplier },
+            };
+        }
+
+        private static JObject EmissionModule(ParticleSystem.EmissionModule emission)
+        {
+            return new JObject()
+            {
+                { "rateOverDistance", emission.rateOverDistance.constant },
+                { "rateOverDistanceMult", emission.rateOverDistanceMultiplier },
+                { "rateOverTime", emission.rateOverTime.constant },
+                { "rateOverTimeMult", emission.rateOverTimeMultiplier },
             };
         }
 

@@ -5,6 +5,7 @@ using System.Linq;
 using CommandTerminal;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
+using UnityEngine.Audio;
 
 namespace FoxyTools
 {
@@ -129,17 +130,61 @@ namespace FoxyTools
 
             ComponentsToJson.IgnoreCurves = true;
 
-            var layered = Resources.FindObjectsOfTypeAll<LayeredAudio>().Where(la => !la.name.Contains("(Clone)"));
-            var layerJson = ComponentsToJson.GenericObject(layered, 6);
+            var layered = Resources.FindObjectsOfTypeAll<LayeredAudio>();//.Where(la => !la.name.Contains("(Clone)"));
+            var processedNames = new HashSet<string>();
+
+            var layerJson = new JArray();
+            foreach (var component in layered)
+            {
+                if (!processedNames.Contains(component.name))
+                {
+                    layerJson.Add(ComponentsToJson.GenericObject(component, 5));
+                    processedNames.Add(component.name);
+                }
+            }
             json.Add("layered", layerJson);
 
+            processedNames.Clear();
+
             var clips = Resources.FindObjectsOfTypeAll<AudioClip>();
-            var clipJson = ComponentsToJson.GenericObject(clips, 6);
+            var clipJson = new JArray();
+            foreach (var component in clips)
+            {
+                if (!processedNames.Contains(component.name))
+                {
+                    layerJson.Add(ComponentsToJson.GenericObject(component, 5));
+                    processedNames.Add(component.name);
+                }
+            }
             json.Add("clips", clipJson);
 
             ComponentsToJson.Reset();
 
             GameObjectDumper.SendJsonToFile("Resources", "audio", json);
+        }
+
+        [FTCommand(0, 0, "Export audio manager")]
+        public static void ExportAudioManager(CommandArg[] args)
+        {
+            ComponentsToJson.IgnoreCurves = true;
+            GameObjectDumper.SendJsonToFile("Resources", "audioManager", ComponentsToJson.GenericObject(AudioManager.e, 5));
+            ComponentsToJson.Reset();
+        }
+
+        [FTCommand(0, 0, "Export audio mixers")]
+        public static void ExportAudioMixers(CommandArg[] args)
+        {
+            ComponentsToJson.IgnoreCurves = true;
+
+            var mixers = Resources.FindObjectsOfTypeAll<AudioMixerGroup>();
+            var mixJson = new JArray();
+            foreach (var mixer in mixers)
+            {
+                mixJson.Add(ComponentsToJson.GenericObject(mixer, 5));
+            }
+
+            ComponentsToJson.Reset();
+            GameObjectDumper.SendJsonToFile("Resources", "audioMixers", mixJson);
         }
     }
 }

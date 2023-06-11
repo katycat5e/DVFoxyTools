@@ -4,7 +4,7 @@ using System.Linq;
 using System.Reflection;
 using CommandTerminal;
 using DV.Logic.Job;
-using Harmony12;
+using HarmonyLib;
 using UnityEngine;
 
 namespace FoxyTools
