@@ -1,9 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
+﻿using System.Linq;
 using CommandTerminal;
-using DV.Logic.Job;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 
@@ -16,24 +12,20 @@ namespace FoxyTools
         {
             if (Terminal.IssuedError) return;
 
-            var stations = GameObject.FindObjectsOfType<StationController>();
+            var stations = Object.FindObjectsOfType<StationController>();
             var stationList = new JArray();
 
             foreach (var station in stations)
             {
-                var stationJson = new JObject()
-                {
-                    { "name", station.stationInfo.Name },
-                    { "id", station.stationInfo.YardID }
-                };
+                var builder = new JObjectBuilder<StationController>(station)
+                    .WithDataClass(s => s.stationInfo)
+                    .With(s => s.proceduralJobsRuleset, RuleSetJson)
+                    .WithEach(s => s.storageRailtracksGONames)
+                    .WithEach(s => s.transferInRailtracksGONames)
+                    .WithEach(s => s.transferOutRailtracksGONames)
+                    .WithEach(s => s.warehouseMachineControllers, w => w.warehouseTrackName);
 
-                // job rules
-                var ruleSet = station.proceduralJobsRuleset;
-                var inputGroups = new JArray(ruleSet.inputCargoGroups.Select(CargoGroupJson));
-                var outputGroups = new JArray(ruleSet.outputCargoGroups.Select(CargoGroupJson));
-
-                stationJson.Add("inputs", inputGroups);
-                stationJson.Add("outputs", outputGroups);
+                var stationJson = builder.Result;
 
                 var spawners = station.GetComponentsInChildren<StationLocoSpawner>();
                 stationJson.Add("spawners", new JArray(spawners.Select(LocoSpawnerJson)));
@@ -44,11 +36,19 @@ namespace FoxyTools
             GameObjectDumper.SendJsonToFile("Resources", "stations", stationList);
         }
 
+        private static JObject RuleSetJson(StationProceduralJobsRuleset ruleset)
+        {
+            return new JObjectBuilder<StationProceduralJobsRuleset>(ruleset)
+                .WithEach(r => r.inputCargoGroups, CargoGroupJson)
+                .WithEach(r => r.outputCargoGroups, CargoGroupJson)
+                .Result;
+        }
+
         private static JObject CargoGroupJson(CargoGroup group)
         {
             return new JObject()
             {
-                { "cargoTypes", new JArray(group.cargoTypes.Select(CargoTypes.GetCargoName)) },
+                { "cargoTypes", new JArray(group.cargoTypes.Select(c => c.ToString())) },
                 { "stations", new JArray(group.stations.Select(s => s.stationInfo.YardID)) }
             };
         }
@@ -65,7 +65,7 @@ namespace FoxyTools
 
         private static JArray ListTrainCarTypeWrapperJson(ListTrainCarTypeWrapper list)
         {
-            var names = list.trainCarTypes.Select(t => t.DisplayName());
+            var names = list.liveries.Select(t => t.localizationKey.Local());
             return new JArray(names);
         }
     }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using CommandTerminal;
+using I2.Loc;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 using UnityEngine.Audio;
@@ -167,7 +168,7 @@ namespace FoxyTools
         public static void ExportAudioManager(CommandArg[] args)
         {
             ComponentsToJson.IgnoreCurves = true;
-            GameObjectDumper.SendJsonToFile("Resources", "audioManager", ComponentsToJson.GenericObject(AudioManager.e, 5));
+            GameObjectDumper.SendJsonToFile("Resources", "audioManager", ComponentsToJson.GenericObject(AudioManager.Instance, 5));
             ComponentsToJson.Reset();
         }
 
@@ -185,6 +186,50 @@ namespace FoxyTools
 
             ComponentsToJson.Reset();
             GameObjectDumper.SendJsonToFile("Resources", "audioMixers", mixJson);
+        }
+
+        [FTCommand(0, 0, "Export Languages")]
+        public static void ExportLanguageData(CommandArg[] _)
+        {
+            var langJson = new JObject();
+
+            var languages = new Dictionary<string, LanguageData>();
+            foreach (var lang in LocalizationManager.Sources.SelectMany(s => s.mLanguages))
+            {
+                if (!languages.ContainsKey(lang.Code))
+                {
+                    languages.Add(lang.Code, lang);
+                }
+            }
+
+            var langDataArray = new JArray();
+            foreach (var lang in languages.Values.OrderBy(l => l.Code))
+            {
+                langDataArray.Add(new JObjectBuilder<LanguageData>(lang).AsDataClass());
+            }
+            langJson.Add("languages", langDataArray);
+
+
+            var terms = new List<KeyValuePair<string, string>>();
+            foreach (var source in LocalizationManager.Sources)
+            {
+                int enIdx = source.GetLanguageIndexFromCode("en");
+                foreach (var term in source.mTerms)
+                {
+                    string translation = term.GetTranslation(enIdx);
+                    terms.Add(new KeyValuePair<string, string>(term.Term, translation));
+                }
+            }
+
+            var termArray = new JObject();
+            foreach (var term in terms.OrderBy(t => t.Key))
+            {
+                termArray.Add(term.Key, term.Value);
+            }
+
+            langJson.Add("terms", termArray);
+
+            GameObjectDumper.SendJsonToFile("Resources", "localization", langJson);
         }
     }
 }

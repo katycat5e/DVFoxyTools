@@ -87,7 +87,7 @@ namespace FoxyTools
                 return;
             }
 
-            string outputDir = Path.Combine(FoxyToolsMain.ModEntry.Path, "Export", targetObject.name);
+            string outputDir = Path.Combine(FoxyToolsMain.Instance.Path, "Export", targetObject.name);
             Directory.CreateDirectory(outputDir);
 
             foreach( var renderer in targetObject.GetComponentsInChildren<MeshRenderer>() )

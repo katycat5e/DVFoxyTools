@@ -1,9 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
 using CommandTerminal;
 
 namespace FoxyTools
@@ -37,7 +33,7 @@ namespace FoxyTools
         {
             if (!(target.CreateDelegate(typeof(Action<CommandArg[]>), null) is Action<CommandArg[]> action))
             {
-                FoxyToolsMain.ModEntry.Logger.Error($"Failed to register method {target.Name} to command \"{Command}\"");
+                FoxyToolsMain.Error($"Failed to register method {target.Name} to command \"{Command}\"");
                 return;
             }
 
@@ -58,8 +54,17 @@ namespace FoxyTools
                 commandStr = $"FT.{target.Name}";
             }
 
-            Terminal.Shell.AddCommand(commandStr, action, MinArgs, MaxArgs, Help);
-            Terminal.Autocomplete.Register(commandStr);
+            var command = new CommandInfo
+            {
+                name = commandStr,
+                proc = action,
+                min_arg_count = MinArgs,
+                max_arg_count = MaxArgs,
+                help = Help,
+            };
+
+            Terminal.Shell.AddCommand(command);
+            Terminal.Autocomplete.Register(command);
         }
 
         public static void RegisterAll()

@@ -1,0 +1,10 @@
+<Project>
+	<PropertyGroup>
+		<ReferencePath>
+			P:\SteamLibrary\steamapps\common\Derail Valley\DerailValley_Data\Managed\;
+			P:\SteamLibrary\steamapps\common\Derail Valley\DerailValley_Data\Managed\UnityModManager\;
+			C:\Program Files\Unity\Hub\Editor\2019.4.40f1\Editor\Data\Managed\
+		</ReferencePath>
+		<AssemblySearchPaths>$(AssemblySearchPaths);$(ReferencePath);</AssemblySearchPaths>
+	</PropertyGroup>
+</Project>

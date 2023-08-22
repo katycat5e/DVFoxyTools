@@ -7,40 +7,84 @@ using System.Threading.Tasks;
 using CommandTerminal;
 using UnityEngine;
 using Newtonsoft.Json.Linq;
-using Newtonsoft.Json;
-using DV.CabControls.Spec;
+using DV.ThingTypes;
+using DV;
 
 namespace FoxyTools
 {
     public static class CarPrefabInfo
     {
-        private static bool TryGetSelectedCar(CommandArg[] args, out TrainCarType carType, out string name)
+        private static bool TryGetSelectedCar(CommandArg[] args, out TrainCarLivery carType, out string name)
         {
             if (args.Length == 0)
             {
                 var car = PlayerManager.Car;
                 if (car)
                 {
-                    carType = car.carType;
-                    name = carType.DisplayName();
+                    carType = car.carLivery;
+                    name = carType.id;
                     return true;
                 }
             }
             else
             {
-                name = args[0].String;
-
-                if (Enum.TryParse(name, out carType))
+                string id = args[0].String;
+                carType = Globals.G.Types.Liveries.FirstOrDefault(l => string.Equals(l.id, id, StringComparison.OrdinalIgnoreCase));
+                
+                if (carType != null)
                 {
+                    name = carType.localizationKey.Local();
                     return true;
                 }
 
-                Debug.LogWarning($"Couldn't find car type \"{name}\"");
+                Debug.LogWarning($"Couldn't find car type \"{id}\"");
             }
 
-            carType = TrainCarType.NotSet;
+            carType = null;
             name = null;
             return false;
+        }
+
+        [FTCommand(0, 0, "Print the full list of car types")]
+        public static void ListCarTypes(CommandArg[] _)
+        {
+            var result = new JArray();
+            foreach (var carType in Globals.G.Types.carTypes)
+            {
+                var builder = new JObjectBuilder<TrainCarType_v2>(carType)
+                    .With(t => t.id)
+                    .With(t => t.bogieSuspensionMultiplier)
+                    .With(t => t.carInstanceIdGenBase)
+                    //hudPrefab
+                    .WithDataClass(t => t.kind)
+                    .With(t => t.localizationKey)
+                    .With(t => t.mass)
+                    .WithEach(t => t.requiredJobLicenses)
+                    .With(t => t.rollingResistanceMultiplier)
+                    .With(t => t.useDefaultWheelRotation)
+                    .With(t => t.wheelRadius)
+                    .With(t => t.wheelSlideFrictionMultiplier)
+                    .With(t => t.wheelslipFrictionMultiplier)
+
+                    .WithDataClass(t => t.brakes)
+                    .WithDataClass(t => t.damage)
+                    .WithEach(t => t.liveries, GetLiveryProps);
+                    ;
+                result.Add(builder.Result);
+            }
+            GameObjectDumper.SendJsonToFile("Resources", "carTypes", result);
+        }
+
+        private static JObject GetLiveryProps(TrainCarLivery livery)
+        {
+            return new JObjectBuilder<TrainCarLivery>(livery)
+                .With(l => l.id)
+                .With(l => l.isHidden)
+                .With(l => l.localizationKey)
+                .With(l => l.requiredLicense)
+                .With(l => l.prefab, p => p.name)
+                .With(l => l.interiorPrefab, p => p ? new JValue(p.name) : JValue.CreateNull())
+                .Result;
         }
 
         [FTCommand(0, 1, "Print the structure of the traincar prefab with given name")]
@@ -48,9 +92,9 @@ namespace FoxyTools
         {
             if( Terminal.IssuedError ) return;
 
-            if (!TryGetSelectedCar(args, out TrainCarType carType, out string name)) return;
+            if (!TryGetSelectedCar(args, out var carType, out string name)) return;
 
-            GameObject prefab = CarTypes.GetCarPrefab(carType);
+            GameObject prefab = carType.prefab;
             if( !prefab )
             {
                 Debug.LogError($"CarType {name} has missing prefab");
@@ -66,32 +110,36 @@ namespace FoxyTools
         {
             if( Terminal.IssuedError ) return;
 
-            if (!TryGetSelectedCar(args, out TrainCarType carType, out string name)) return;
+            if (!TryGetSelectedCar(args, out var carType, out string name)) return;
 
-            GameObject prefab = CarTypes.GetCarPrefab(carType);
-            if( !prefab )
-            {
-                Debug.LogError($"CarType {name} has missing prefab");
-                return;
-            }
-
-            TrainCar car = prefab.GetComponent<TrainCar>();
-            if( !car )
-            {
-                Debug.LogError($"Couldn't find TrainCar on carType {name}");
-                return;
-            }
-
-            if( !car.interiorPrefab )
+            if( !carType.interiorPrefab )
             {
                 Debug.LogWarning($"TrainCar on carType {name} doesn't have an interiorPrefab assigned");
                 return;
             }
 
-            JToken contents = GameObjectDumper.DumpObject(car.interiorPrefab);
+            JToken contents = GameObjectDumper.DumpObject(carType.interiorPrefab);
             GameObjectDumper.SendJsonToFile(name, "interior", contents);
         }
 
+        [FTCommand(0, 1, "Print the external interactables structure of the given car")]
+        public static void DumpCarInteractables(CommandArg[] args)
+        {
+            if (Terminal.IssuedError) return;
+
+            if (!TryGetSelectedCar(args, out var carType, out string name)) return;
+
+            if (!carType.externalInteractablesPrefab)
+            {
+                Debug.LogWarning($"CarType {name} doesn't have an interiorPrefab assigned");
+                return;
+            }
+
+            JToken contents = GameObjectDumper.DumpObject(carType.externalInteractablesPrefab);
+            GameObjectDumper.SendJsonToFile(name, "interactables", contents);
+        }
+
+        /*
         [FTCommand(0, 1, "Print the colliders of the traincar prefab with given name")]
         public static void ExportCarColliders( CommandArg[] args )
         {
@@ -362,5 +410,6 @@ namespace FoxyTools
 
             GameObjectDumper.SendJsonToFile(name, "particles", json);
         }
+        */
     }
 }

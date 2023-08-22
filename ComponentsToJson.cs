@@ -5,7 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
-using DV.CabControls.Spec;
+using DV.Simulation.Cars;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 
@@ -22,7 +22,14 @@ namespace FoxyTools
 
         private static JToken GetSpecialConversion(object obj)
         {
-            var objType = obj.GetType();
+            if (obj is GameObject gameObject)
+            {
+                return $"(GameObject) {gameObject.name}";
+            }
+            if (obj is Transform transform)
+            {
+                return $"(Transform) {transform.name}";
+            }
 
             if (obj is Collider collider)
             {
@@ -175,11 +182,13 @@ namespace FoxyTools
         {
             return new JObject()
             {
+                /*
                 { "frictionCoefficient", driver.frictionCoeficient },
                 { "preventWheelslip", driver.preventWheelslip },
                 { "sandCoefMax", driver.sandCoefMax },
                 { "slopeCoefMultiplier", driver.slopeCoeficientMultiplier },
                 { "wheelslipFrictionCurve", AnimationCurve(driver.wheelslipToFrictionModifierCurve) }
+                */
             };
         }
         
@@ -195,7 +204,7 @@ namespace FoxyTools
 
             return new JObject()
             {
-                { "trainCarType", poolData.trainCarType.DisplayName() },
+                { "trainCarType", poolData.trainCarType.ToString() },
                 { "poolSize", poolData.poolSize },
                 { "audioPrefab", prefabInfo },
                 { "trainAudio", audioComp }
@@ -294,10 +303,46 @@ namespace FoxyTools
             };
         }
 
-        public static JToken GenericObject( object obj, int depthLimit = 20 )
+        public class ObjectContext
         {
-            if( obj == null ) return JValue.CreateNull();
-            if( depthLimit == 0 ) return "Depth limit reached";
+            public object Current;
+            public ObjectContext Parent;
+
+            public ObjectContext(object current, ObjectContext parent = null)
+            {
+                Current = current;
+                Parent = parent;
+            }
+
+            public bool CurrentIsChildOfScript()
+            {
+                var compare = Parent;
+                while (compare != null)
+                {
+                    if (compare.Current is MonoBehaviour) return true;
+                    compare = compare.Parent;
+                }
+                return false;
+            }
+
+            public bool CurrentFormsCycle()
+            {
+                var compare = Parent;
+                while (compare != null)
+                {
+                    if (Equals(Current, compare.Current)) return true;
+                    compare = compare.Parent;
+                }
+                return false;
+            }
+        }
+
+        public static JToken GenericObject(object obj, int depthLimit = 20, ObjectContext context = null)
+        {
+            if ((obj == null) || (obj is UnityEngine.Object uObj && !uObj)) return JValue.CreateNull();
+            if (depthLimit == 0) return "Depth limit reached";
+
+            var childContext = new ObjectContext(obj, context);
 
             Type objType = obj.GetType();
             if (objType.IsPrimitive || obj is string)
@@ -315,13 +360,13 @@ namespace FoxyTools
                     var arr = new JArray();
                     foreach( object member in val )
                     {
-                        arr.Add(GenericObject(member, depthLimit - 1));
+                        arr.Add(GenericObject(member, depthLimit - 1, childContext));
                     }
                     return arr;
                 }
                 else
                 {
-                    FoxyToolsMain.ModEntry.Logger.Warning("Failed to get array field value");
+                    FoxyToolsMain.Warning("Failed to get array field value");
                     return JValue.CreateNull();
                 }
             }
@@ -329,41 +374,45 @@ namespace FoxyTools
             {
                 return specialJson;
             }
-            else if (obj is UnityEngine.Object script)
+            else if (obj is MonoBehaviour behaviour)
             {
-                if( script )
+                if (childContext.CurrentIsChildOfScript())
+                {
+                    // this is a reference to a script on another object
+                    return new JObject()
+                    {
+                        { "_componentType", $"{objType.Name} (ref)" },
+                        { "_location", behaviour.transform.Heirarchy() }
+                    };
+                }
+                else
                 {
                     var props = new JObject()
                     {
-                        { "_componentType", objType.Name },
-                        { "_name", script.name }
+                        { "_componentType", objType.Name }
                     };
 
                     var fields = obj.GetType().GetFields(BindingFlags.Public | BindingFlags.Instance);
-                    foreach( FieldInfo field in fields )
+                    foreach (FieldInfo field in fields)
                     {
-                        var token = GenericObject(field.GetValue(obj), depthLimit - 1);
+                        var token = GenericObject(field.GetValue(obj), depthLimit - 1, childContext);
                         props.Add(field.Name, token);
                     }
                     return props;
                 }
-                else
-                {
-                    return $"Null {objType.Name}";
-                }
             }
-            //else if( obj is UnityEngine.Object unityVal )
-            //{
-            //    if( unityVal ) return unityVal.name;
-            //    return "";
-            //}
             else
             {
+                if (childContext.CurrentFormsCycle())
+                {
+                    return "Skipped - recursion detected";
+                }
+
                 var props = new JObject();
                 var fields = obj.GetType().GetFields();
                 foreach( FieldInfo field in fields )
                 {
-                    var token = GenericObject(field.GetValue(obj), depthLimit - 1);
+                    var token = GenericObject(field.GetValue(obj), depthLimit - 1, childContext);
                     props.Add(field.Name, token);
                 }
                 return props;

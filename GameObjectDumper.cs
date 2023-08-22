@@ -12,6 +12,8 @@ namespace FoxyTools
 {
     static class GameObjectDumper
     {
+        public const string EXPORT_DIR = "FT_Export";
+
         public static JToken DumpObject( GameObject obj )
         {
             if( obj == null ) return "";
@@ -28,7 +30,7 @@ namespace FoxyTools
             {
                 if( c )
                 {
-                    componentList.Add(c.GetType().Name);
+                    componentList.Add(ComponentsToJson.GenericObject(c));
                 }
             }
 
@@ -71,7 +73,7 @@ namespace FoxyTools
 
         public static void SendJsonToFile(string objName, string subType, JToken json)
         {
-            string outDir = Path.Combine(FoxyToolsMain.ModEntry.Path, "Export", objName);
+            string outDir = Path.Combine(FoxyToolsMain.Instance.Path, EXPORT_DIR, objName);
 
             try
             {
@@ -84,12 +86,6 @@ namespace FoxyTools
                 Debug.LogError("Couldn't open output file:\n" + ex.Message);
                 return;
             }
-        }
-
-        public static void SendJsonToFile(string fileName, JToken token)
-        {
-            string outPath = Path.Combine(FoxyToolsMain.ModEntry.Path, "Export", fileName);
-            ExportJson(outPath, token);
         }
 
         private static void ExportJson(string outPath, JToken json)

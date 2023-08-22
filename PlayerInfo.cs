@@ -6,6 +6,7 @@ using CommandTerminal;
 using DV.Logic.Job;
 using HarmonyLib;
 using UnityEngine;
+using DV.Simulation.Cars;
 
 namespace FoxyTools
 {
@@ -23,7 +24,7 @@ namespace FoxyTools
 
             Track currentTrack = currentCar.logicCar.CurrentTrack;
 
-            Debug.Log($"Current car: {currentCar.carType.DisplayName()} {currentCar.ID} on track {currentTrack.ID.FullDisplayID}");
+            Debug.Log($"Current car: {currentCar.carLivery.localizationKey.Local()} {currentCar.ID} on track {currentTrack.ID.FullDisplayID}");
         }
 
         [FTCommand(Help = "Get the full structure of the train car the player is on")]
@@ -36,7 +37,7 @@ namespace FoxyTools
                 return;
             }
 
-            Debug.Log($"Dumping structure of {currentCar.carType.DisplayName()}");
+            Debug.Log($"Dumping structure of {currentCar.carLivery.localizationKey.Local()}");
             var structure = GameObjectDumper.DumpObject(currentCar.gameObject);
             GameObjectDumper.SendJsonToFile(currentCar.name, "spawned", structure);
         }
@@ -49,8 +50,8 @@ namespace FoxyTools
             Debug.Log($"Player transform: p: {tform.position}, r: {tform.rotation}");
         }
 
-        private static readonly FieldInfo adhesionField = AccessTools.Field(typeof(DrivingForce), "factorOfAdhesion");
-        private static readonly FieldInfo forceLimitField = AccessTools.Field(typeof(DrivingForce), "tractionForceWheelslipLimit");
+        //private static readonly FieldInfo adhesionField = AccessTools.Field(typeof(DrivingForce), "factorOfAdhesion");
+        //private static readonly FieldInfo forceLimitField = AccessTools.Field(typeof(DrivingForce), "tractionForceWheelslipLimit");
 
         [FTCommand(Help = "Print driving force debug")]
         public static void GetForces(CommandArg[] args)
@@ -65,11 +66,11 @@ namespace FoxyTools
             var force = currentCar.GetComponent<DrivingForce>();
             if (force)
             {
-                Debug.Log($"Friction Coef:   {force.frictionCoeficient:#.00}");
-                Debug.Log($"Adhesion Factor: {(float)adhesionField.GetValue(force):#} kg");
-                Debug.Log($"Slip Limit:      {(float)forceLimitField.GetValue(force):#} N");
-                Debug.Log($"Slope Mult:      {force.slopeCoeficientMultiplier:#.00}");
-                Debug.Log($"Wheelslip:       {force.wheelslip:#.00}");
+                //Debug.Log($"Friction Coef:   {force.frictionCoeficient:#.00}");
+                //Debug.Log($"Adhesion Factor: {(float)adhesionField.GetValue(force):#} kg");
+                //Debug.Log($"Slip Limit:      {(float)forceLimitField.GetValue(force):#} N");
+                //Debug.Log($"Slope Mult:      {force.slopeCoeficientMultiplier:#.00}");
+                //Debug.Log($"Wheelslip:       {force.wheelslip:#.00}");
             }
         }
     }
